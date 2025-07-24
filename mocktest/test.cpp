@@ -7,6 +7,8 @@ protected:
 	void SetUp() override {
 		NON_ON_TIME_HOUR = getTime(2021, 3, 26, 9, 5);
 		ON_TIME_HOUR = getTime(2021, 3, 26, 9, 0);
+		bookingScheduler.setSmsSender(&testablesmsSender);
+
 	}
 public:
 	
@@ -28,6 +30,7 @@ public:
 	const int CAPA_PER_HOUR = 3;
 
 	BookingScheduler bookingScheduler{ CAPA_PER_HOUR };
+	TestableSmsSender testablesmsSender;
 private:
 
 };
@@ -74,9 +77,7 @@ TEST_F(BookingItem, 시간대별인원제한이있다같은시간대가다르면Capacity차있어도스케
 }
 
 TEST_F(BookingItem, 예약완료시SMS는무조건발송) {
-	TestableSmsSender testablesmsSender;
 	Schedule* schedule = new Schedule{ ON_TIME_HOUR, CAPA_PER_HOUR, CUSTOMER };
-	bookingScheduler.setSmsSender(&testablesmsSender);
 	bookingScheduler.addSchedule(schedule);
 	EXPECT_EQ(true, testablesmsSender.isSendMethodIsCallded());
 }
