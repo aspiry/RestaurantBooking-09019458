@@ -4,6 +4,11 @@
 #include "testable_mail_sender.cpp"
 #include "testable_booking_scheduler.cpp"
 using namespace testing;
+
+class MockCustomer : public Customer {
+public:
+	MOCK_METHOD(string, getEmail, (), (override));
+};
 class BookingItem : public Test {
 protected:
 	void SetUp() override {
@@ -13,6 +18,9 @@ protected:
 		MONDAY= getTime(2024, 6, 3, 17, 0);
 		bookingScheduler.setSmsSender(&testablesmsSender);
 		bookingScheduler.setMailSender(&testableMailSender);
+
+		EXPECT_CALL(CUSTOMER, getEmail).WillRepeatedly(Return(""));
+		EXPECT_CALL(CUSTOMER_WITH_MAIL, getEmail).WillRepeatedly(Return("test@test.com"));
 	}
 public:
 	
@@ -31,8 +39,10 @@ public:
 	tm SUNDAY;
 	tm MONDAY;
 
-	Customer CUSTOMER{ "Fake name ", "010-1234-5678" };
-	Customer CUSTOMER_WITH_MAIL{ "Fake name ", "010-1234-5678","test@mail.com"};
+	MockCustomer CUSTOMER;
+	MockCustomer CUSTOMER_WITH_MAIL;
+	//Customer CUSTOMER{ "Fake name ", "010-1234-5678" };
+	//Customer CUSTOMER_WITH_MAIL{ "Fake name ", "010-1234-5678","test@mail.com"};
 	const int UNDER_CAPA = 1;
 	const int CAPA_PER_HOUR = 3;
 
