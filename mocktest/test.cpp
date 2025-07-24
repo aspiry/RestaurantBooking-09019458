@@ -1,42 +1,59 @@
 #include "gmock/gmock.h"
 #include "booking_scheduler.cpp"
 
-TEST(BookingSchedulerTest, 예약은정시에만가능하다정시가아닌경우예약불가) {
+using namespace testing;
+class BookingItem : public Test {
+protected:
+	void SetUp() override {
+		NON_ON_THE_HOUR = getTime(2021, 3, 26, 9, 5);
+		ON_THE_HOUR = getTime(2021, 3, 26, 9, 0);
+	}
+public:
+	
+	tm getTime(int year, int mon, int mday, int hour, int min) {
+		tm result = { 0,min,hour,mday, mon - 1,year - 1900, 0,0,-1 };
+		mktime(&result);
+		return result;
+	}	
+	tm NON_ON_THE_HOUR;
+	tm ON_THE_HOUR;
+
+	Customer CUSTOMER{ "Fake name ", "010-1234-5678" };
+		const int UNDER_CAPA = 1;
+	const int CAPA_PER_HOUR = 3;
+
+	BookingScheduler bookingScheduler{ CAPA_PER_HOUR };
+private:
+
+};
+TEST_F(BookingItem, 예약은정시에만가능하다정시가아닌경우예약불가) {
 	//arrange
-	tm notontheHour{ 0 };
-	notontheHour.tm_year = 2021 - 1900;
-	notontheHour.tm_mon = 03 - 1;
-	notontheHour.tm_mday = 26;
-	notontheHour.tm_hour = 9;
-	notontheHour.tm_min =5;
-	notontheHour.tm_isdst = - 1;
-	mktime(&notontheHour);
-	Customer customer{ "Fake name ", "010-1234-5678" };
-	Schedule* schedule = new Schedule{ notontheHour, 1, customer };
-	BookingScheduler bookingScheduler{ 3 };
+	Schedule* schedule = new Schedule{ NON_ON_THE_HOUR, UNDER_CAPA, CUSTOMER };
 	EXPECT_THROW({ bookingScheduler.addSchedule(schedule); }, std::runtime_error);
 
 }
 
-TEST(BookingSchedulerTest, 예약은정시에만가능하다정시인경우예약가능) {
-	tm onntheHour{ 0 };
-	onntheHour.tm_year = 2021 - 1900;
-	onntheHour.tm_mon = 03 - 1;
-	onntheHour.tm_mday = 26;
-	onntheHour.tm_hour = 9;
-	onntheHour.tm_min = 0;
-	onntheHour.tm_isdst = -1;
-	mktime(&onntheHour);
-	Customer customer{ "Fake name ", "010-1234-5678" };
-	Schedule* schedule = new Schedule{ onntheHour, 1, customer };
-	BookingScheduler bookingScheduler{ 3 };
+TEST_F(BookingItem, 예약은정시에만가능하다정시인경우예약가능) {
+	Schedule* schedule = new Schedule{ ON_THE_HOUR, UNDER_CAPA, CUSTOMER };
 	//ACT
 	bookingScheduler.addSchedule(schedule);
 	EXPECT_EQ(true, bookingScheduler.hasSchedule(schedule));
 
 }
 
-TEST(BookingSchedulerTest, 시간대별인원제한이있다같은시간대에Capacity초과할경우예외발생) {
+TEST_F(BookingItem, 시간대별인원제한이있다같은시간대에Capacity초과할경우예외발생) {
+	Schedule* schedule = new Schedule{ ON_THE_HOUR, CAPA_PER_HOUR, CUSTOMER };
+	bookingScheduler.addSchedule(schedule);
+	try
+	{
+		Schedule* newSchedule = new Schedule{ ON_THE_HOUR, UNDER_CAPA, CUSTOMER };
+		bookingScheduler.addSchedule(newSchedule);
+		FAIL();
+	}
+	catch (std::runtime_error & e)
+	{
+		EXPECT_EQ(string{ e.what() }, string{ "Number of people is over restaurant capacity per hour" });
+	}
 
 }
 
