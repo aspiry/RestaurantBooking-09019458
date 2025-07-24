@@ -1,6 +1,6 @@
 #include "gmock/gmock.h"
 #include "booking_scheduler.cpp"
-
+#include "testable_sms_sender.cpp"
 using namespace testing;
 class BookingItem : public Test {
 protected:
@@ -15,6 +15,11 @@ public:
 		mktime(&result);
 		return result;
 	}	
+	tm plusTime(tm base, int hour) {
+		base.tm_hour += hour;
+		mktime(&base);
+		return base;
+	}
 	tm NON_ON_TIME_HOUR;
 	tm ON_TIME_HOUR;
 
@@ -60,18 +65,20 @@ TEST_F(BookingItem, 시간대별인원제한이있다같은시간대에Capacity초과할경우예외발생
 TEST_F(BookingItem, 시간대별인원제한이있다같은시간대가다르면Capacity차있어도스케쥴추가성공) {
 	Schedule* schedule = new Schedule{ ON_TIME_HOUR, CAPA_PER_HOUR, CUSTOMER };
 	bookingScheduler.addSchedule(schedule);
-	tm differentHour = ON_TIME_HOUR;
-	differentHour.tm_hour += 1;
-	mktime(&differentHour);
-	Schedule* newschedule = new Schedule{ differentHour, UNDER_CAPA, CUSTOMER };
+	
+	Schedule* newschedule = new Schedule{ plusTime(ON_TIME_HOUR,1), UNDER_CAPA, CUSTOMER};
 	bookingScheduler.addSchedule(newschedule);
 
 	EXPECT_EQ(true, bookingScheduler.hasSchedule(newschedule));
 
 }
 
-TEST(BookingSchedulerTest, 예약완료시SMS는무조건발송) {
-
+TEST_F(BookingItem, 예약완료시SMS는무조건발송) {
+	TestableSmsSender testablesmsSender;
+	Schedule* schedule = new Schedule{ ON_TIME_HOUR, CAPA_PER_HOUR, CUSTOMER };
+	bookingScheduler.setSmsSender(&testablesmsSender);
+	bookingScheduler.addSchedule(schedule);
+	EXPECT_EQ(true, testablesmsSender.isSendMethodIsCallded());
 }
 
 TEST(BookingSchedulerTest, 이메일이없는경우에는이메일미발송) {
