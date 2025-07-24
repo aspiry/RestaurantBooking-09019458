@@ -2,7 +2,7 @@
 #include "booking_scheduler.cpp"
 //#include "testable_sms_sender.cpp"
 //#include "testable_mail_sender.cpp"
-#include "testable_booking_scheduler.cpp"
+//#include "testable_booking_scheduler.cpp"
 using namespace testing;
 
 class MockCustomer : public Customer {
@@ -17,6 +17,13 @@ public:
 class TestablMailSender : public MailSender {
 public:
 	MOCK_METHOD(void, sendMail, (Schedule*), (override));
+};
+class TestableBookingScheduler : public BookingScheduler {
+public:
+	TestableBookingScheduler(int capa) :
+		BookingScheduler{ capa } {};
+	
+	MOCK_METHOD(time_t, getNow, (), (override));
 };
 class BookingItem : public Test {
 protected:
@@ -128,7 +135,11 @@ TEST_F(BookingItem, 이메일이있는경우에는이메일발송) {
 }
 
 TEST_F(BookingItem,  현재날짜가일요일인경우예약불가예외처리) {
-	BookingScheduler* sunbookingScheduler = new  TestableBookingScheduler{ CAPA_PER_HOUR,SUNDAY  };
+
+	TestableBookingScheduler mockscheduler{ CAPA_PER_HOUR };
+	EXPECT_CALL(mockscheduler, getNow).WillRepeatedly(Return(mktime(&SUNDAY)));
+
+	BookingScheduler* sunbookingScheduler = &mockscheduler;
 	try {
 		Schedule* schedule = new Schedule{ ON_TIME_HOUR, UNDER_CAPA, CUSTOMER_WITH_MAIL };
 		sunbookingScheduler->addSchedule(schedule);
@@ -140,16 +151,17 @@ TEST_F(BookingItem,  현재날짜가일요일인경우예약불가예외처리) {
 	}
 }
 TEST_F(BookingItem, 현재날짜가일요일이아닌경우예약가능) {
-	BookingScheduler* sunbookingScheduler = new  TestableBookingScheduler{ CAPA_PER_HOUR,MONDAY };
-	try {
-		Schedule* schedule = new Schedule{ ON_TIME_HOUR, UNDER_CAPA, CUSTOMER_WITH_MAIL };
-		sunbookingScheduler->addSchedule(schedule);
-		FAIL();
-	}
-	catch (std::runtime_error& e)
-	{
-		EXPECT_EQ(string{ e.what() }, string{ "Booking system is not available on sunday" });
-	}
+
+	TestableBookingScheduler mockscheduler{ CAPA_PER_HOUR };
+	EXPECT_CALL(mockscheduler, getNow).WillRepeatedly(Return(mktime(&MONDAY)));
+	BookingScheduler* monbookingScheduler = &mockscheduler;
+
+
+
+	Schedule* schedule = new Schedule{ ON_TIME_HOUR, UNDER_CAPA, CUSTOMER_WITH_MAIL };
+	monbookingScheduler->addSchedule(schedule);
+
+	EXPECT_EQ(true, monbookingScheduler->hasSchedule(schedule));
 }
 
 int main() {
