@@ -2,12 +2,15 @@
 #include "booking_scheduler.cpp"
 #include "testable_sms_sender.cpp"
 #include "testable_mail_sender.cpp"
+#include "testable_booking_scheduler.cpp"
 using namespace testing;
 class BookingItem : public Test {
 protected:
 	void SetUp() override {
 		NON_ON_TIME_HOUR = getTime(2021, 3, 26, 9, 5);
 		ON_TIME_HOUR = getTime(2021, 3, 26, 9, 0);
+		SUNDAY= getTime(2021, 3, 28, 17, 0);
+		MONDAY= getTime(2024, 6, 3, 17, 0);
 		bookingScheduler.setSmsSender(&testablesmsSender);
 		bookingScheduler.setMailSender(&testableMailSender);
 	}
@@ -25,6 +28,8 @@ public:
 	}
 	tm NON_ON_TIME_HOUR;
 	tm ON_TIME_HOUR;
+	tm SUNDAY;
+	tm MONDAY;
 
 	Customer CUSTOMER{ "Fake name ", "010-1234-5678" };
 	Customer CUSTOMER_WITH_MAIL{ "Fake name ", "010-1234-5678","test@mail.com"};
@@ -98,12 +103,29 @@ TEST_F(BookingItem, 이메일이있는경우에는이메일발송) {
 
 }
 
-TEST(BookingSchedulerTest, 현재날짜가일요일인경우예약불가예외처리) {
-
+TEST_F(BookingItem,  현재날짜가일요일인경우예약불가예외처리) {
+	BookingScheduler* sunbookingScheduler = new  TestableBookingScheduler{ CAPA_PER_HOUR,SUNDAY  };
+	try {
+		Schedule* schedule = new Schedule{ ON_TIME_HOUR, UNDER_CAPA, CUSTOMER_WITH_MAIL };
+		sunbookingScheduler->addSchedule(schedule);
+		FAIL();
+	}
+	catch (std::runtime_error& e)
+	{
+		EXPECT_EQ(string{ e.what() }, string{ "Booking system is not available on sunday" });
+	}
 }
-
-TEST(BookingSchedulerTest, 현재날짜가일요일이아닌경우예약가능) {
-
+TEST_F(BookingItem, 현재날짜가일요일이아닌경우예약가능) {
+	BookingScheduler* sunbookingScheduler = new  TestableBookingScheduler{ CAPA_PER_HOUR,MONDAY };
+	try {
+		Schedule* schedule = new Schedule{ ON_TIME_HOUR, UNDER_CAPA, CUSTOMER_WITH_MAIL };
+		sunbookingScheduler->addSchedule(schedule);
+		FAIL();
+	}
+	catch (std::runtime_error& e)
+	{
+		EXPECT_EQ(string{ e.what() }, string{ "Booking system is not available on sunday" });
+	}
 }
 
 int main() {
