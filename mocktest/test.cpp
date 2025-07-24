@@ -1,13 +1,22 @@
 #include "gmock/gmock.h"
 #include "booking_scheduler.cpp"
-#include "testable_sms_sender.cpp"
-#include "testable_mail_sender.cpp"
+//#include "testable_sms_sender.cpp"
+//#include "testable_mail_sender.cpp"
 #include "testable_booking_scheduler.cpp"
 using namespace testing;
 
 class MockCustomer : public Customer {
 public:
 	MOCK_METHOD(string, getEmail, (), (override));
+};
+
+class TestableSmsSender : public SmsSender {
+public:
+	MOCK_METHOD(void , send, (Schedule* ), (override));
+};
+class TestablMailSender : public MailSender {
+public:
+	MOCK_METHOD(void, sendMail, (Schedule*), (override));
 };
 class BookingItem : public Test {
 protected:
@@ -47,8 +56,8 @@ public:
 	const int CAPA_PER_HOUR = 3;
 
 	BookingScheduler bookingScheduler{ CAPA_PER_HOUR };
-	TestableSmsSender testablesmsSender;
-	TestablMailSender testableMailSender;
+	NiceMock<TestableSmsSender> testablesmsSender;
+	NiceMock<TestablMailSender> testableMailSender;
 private:
 
 };
@@ -96,20 +105,25 @@ TEST_F(BookingItem, 시간대별인원제한이있다같은시간대가다르면Capacity차있어도스케
 
 TEST_F(BookingItem, 예약완료시SMS는무조건발송) {
 	Schedule* schedule = new Schedule{ ON_TIME_HOUR, CAPA_PER_HOUR, CUSTOMER };
+	EXPECT_CALL(testablesmsSender, send(schedule)).Times(1);
+	//EXPECT_EQ(true, testablesmsSender.isSendMethodIsCallded());
 	bookingScheduler.addSchedule(schedule);
-	EXPECT_EQ(true, testablesmsSender.isSendMethodIsCallded());
+
 }
 
 TEST_F(BookingItem, 이메일이없는경우에는이메일미발송) {
 	Schedule* schedule = new Schedule{ ON_TIME_HOUR, UNDER_CAPA, CUSTOMER };
+	EXPECT_CALL(testableMailSender, sendMail(schedule)).Times(0);
 	bookingScheduler.addSchedule(schedule);
-	EXPECT_EQ(0, testableMailSender.getCountSendMAilMethodIsCalled());
+
+
 }
 
 TEST_F(BookingItem, 이메일이있는경우에는이메일발송) {
 	Schedule* schedule = new Schedule{ ON_TIME_HOUR, UNDER_CAPA, CUSTOMER_WITH_MAIL };
+	EXPECT_CALL(testableMailSender, sendMail(schedule)).Times(1);
 	bookingScheduler.addSchedule(schedule);
-	EXPECT_EQ(1, testableMailSender.getCountSendMAilMethodIsCalled());
+
 
 }
 
