@@ -35,17 +35,18 @@ public:
             throw std::runtime_error("Number of people is over restaurant capacity per hour");
         }
 
-        /*
+        
         // 일요일에는 시스템을 오픈하지 않는다.
-        time_t now = time(nullptr);
+        time_t now = getNow();//컴퓨터 시간 읽어오는 코드 //일요일까지 기다릴 수 없으니까 stub
         if (getDayOfWeek(now) == "Sunday") {
             throw std::runtime_error("Booking system is not available on sunday");
         }
-        */
-
+        
+        //예약이 정상이 아니면 exception
         schedules.push_back(schedule);
 
         // 고객에게 SMS 발송
+        //돈들어감
         smsSender->send(schedule);
         // 고객이 E-Mail을 가지고 있을 경우 E-Mail 발송
         if (schedule->getCustomer().getEmail() != "") {
@@ -65,7 +66,10 @@ public:
     void setMailSender(MailSender* mailSender) {
         this->mailSender = mailSender;
     }
-
+    virtual time_t getNow()
+    {
+        return time(nullptr);
+    }
 private:
     //두 시간이 같은지 확인
     bool isSameTime(tm a, tm b) {
