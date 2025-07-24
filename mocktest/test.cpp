@@ -5,8 +5,8 @@ using namespace testing;
 class BookingItem : public Test {
 protected:
 	void SetUp() override {
-		NON_ON_THE_HOUR = getTime(2021, 3, 26, 9, 5);
-		ON_THE_HOUR = getTime(2021, 3, 26, 9, 0);
+		NON_ON_TIME_HOUR = getTime(2021, 3, 26, 9, 5);
+		ON_TIME_HOUR = getTime(2021, 3, 26, 9, 0);
 	}
 public:
 	
@@ -15,8 +15,8 @@ public:
 		mktime(&result);
 		return result;
 	}	
-	tm NON_ON_THE_HOUR;
-	tm ON_THE_HOUR;
+	tm NON_ON_TIME_HOUR;
+	tm ON_TIME_HOUR;
 
 	Customer CUSTOMER{ "Fake name ", "010-1234-5678" };
 		const int UNDER_CAPA = 1;
@@ -28,13 +28,13 @@ private:
 };
 TEST_F(BookingItem, 예약은정시에만가능하다정시가아닌경우예약불가) {
 	//arrange
-	Schedule* schedule = new Schedule{ NON_ON_THE_HOUR, UNDER_CAPA, CUSTOMER };
+	Schedule* schedule = new Schedule{ NON_ON_TIME_HOUR, UNDER_CAPA, CUSTOMER };
 	EXPECT_THROW({ bookingScheduler.addSchedule(schedule); }, std::runtime_error);
 
 }
 
 TEST_F(BookingItem, 예약은정시에만가능하다정시인경우예약가능) {
-	Schedule* schedule = new Schedule{ ON_THE_HOUR, UNDER_CAPA, CUSTOMER };
+	Schedule* schedule = new Schedule{ ON_TIME_HOUR, UNDER_CAPA, CUSTOMER };
 	//ACT
 	bookingScheduler.addSchedule(schedule);
 	EXPECT_EQ(true, bookingScheduler.hasSchedule(schedule));
@@ -42,11 +42,11 @@ TEST_F(BookingItem, 예약은정시에만가능하다정시인경우예약가능) {
 }
 
 TEST_F(BookingItem, 시간대별인원제한이있다같은시간대에Capacity초과할경우예외발생) {
-	Schedule* schedule = new Schedule{ ON_THE_HOUR, CAPA_PER_HOUR, CUSTOMER };
+	Schedule* schedule = new Schedule{ ON_TIME_HOUR, CAPA_PER_HOUR, CUSTOMER };
 	bookingScheduler.addSchedule(schedule);
 	try
 	{
-		Schedule* newSchedule = new Schedule{ ON_THE_HOUR, UNDER_CAPA, CUSTOMER };
+		Schedule* newSchedule = new Schedule{ ON_TIME_HOUR, UNDER_CAPA, CUSTOMER };
 		bookingScheduler.addSchedule(newSchedule);
 		FAIL();
 	}
@@ -57,7 +57,16 @@ TEST_F(BookingItem, 시간대별인원제한이있다같은시간대에Capacity초과할경우예외발생
 
 }
 
-TEST(BookingSchedulerTest, 시간대별인원제한이있다같은시간대가다르면Capacity차있어도스케쥴추가성공) {
+TEST_F(BookingItem, 시간대별인원제한이있다같은시간대가다르면Capacity차있어도스케쥴추가성공) {
+	Schedule* schedule = new Schedule{ ON_TIME_HOUR, CAPA_PER_HOUR, CUSTOMER };
+	bookingScheduler.addSchedule(schedule);
+	tm differentHour = ON_TIME_HOUR;
+	differentHour.tm_hour += 1;
+	mktime(&differentHour);
+	Schedule* newschedule = new Schedule{ differentHour, UNDER_CAPA, CUSTOMER };
+	bookingScheduler.addSchedule(newschedule);
+
+	EXPECT_EQ(true, bookingScheduler.hasSchedule(newschedule));
 
 }
 
