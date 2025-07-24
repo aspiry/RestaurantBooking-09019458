@@ -1,6 +1,7 @@
 #include "gmock/gmock.h"
 #include "booking_scheduler.cpp"
 #include "testable_sms_sender.cpp"
+#include "testable_mail_sender.cpp"
 using namespace testing;
 class BookingItem : public Test {
 protected:
@@ -8,7 +9,7 @@ protected:
 		NON_ON_TIME_HOUR = getTime(2021, 3, 26, 9, 5);
 		ON_TIME_HOUR = getTime(2021, 3, 26, 9, 0);
 		bookingScheduler.setSmsSender(&testablesmsSender);
-
+		bookingScheduler.setMailSender(&testableMailSender);
 	}
 public:
 	
@@ -26,11 +27,13 @@ public:
 	tm ON_TIME_HOUR;
 
 	Customer CUSTOMER{ "Fake name ", "010-1234-5678" };
-		const int UNDER_CAPA = 1;
+	Customer CUSTOMER_WITH_MAIL{ "Fake name ", "010-1234-5678","test@mail.com"};
+	const int UNDER_CAPA = 1;
 	const int CAPA_PER_HOUR = 3;
 
 	BookingScheduler bookingScheduler{ CAPA_PER_HOUR };
 	TestableSmsSender testablesmsSender;
+	TestablMailSender testableMailSender;
 private:
 
 };
@@ -82,11 +85,16 @@ TEST_F(BookingItem, 예약완료시SMS는무조건발송) {
 	EXPECT_EQ(true, testablesmsSender.isSendMethodIsCallded());
 }
 
-TEST(BookingSchedulerTest, 이메일이없는경우에는이메일미발송) {
-
+TEST_F(BookingItem, 이메일이없는경우에는이메일미발송) {
+	Schedule* schedule = new Schedule{ ON_TIME_HOUR, UNDER_CAPA, CUSTOMER };
+	bookingScheduler.addSchedule(schedule);
+	EXPECT_EQ(0, testableMailSender.getCountSendMAilMethodIsCalled());
 }
 
-TEST(BookingSchedulerTest, 이메일이있는경우에는이메일발송) {
+TEST_F(BookingItem, 이메일이있는경우에는이메일발송) {
+	Schedule* schedule = new Schedule{ ON_TIME_HOUR, UNDER_CAPA, CUSTOMER_WITH_MAIL };
+	bookingScheduler.addSchedule(schedule);
+	EXPECT_EQ(1, testableMailSender.getCountSendMAilMethodIsCalled());
 
 }
 
